@@ -43,10 +43,28 @@ loop_2:
     jmp loop_2
 
 
+
+; write list
+
 write_list:
+    mov r15, rsi
+    dec r15
+    push rdi
+    push rdx
+    
+
+loop_array:
+    pop rdx
+    pop rdi
+    cmp rdx, r15
+    jge load_eof
     mov rax, [rdi + 8 * rdx]
     mov r11, 0
     mov rdi, buf
+    inc rdx
+    push rdi
+    push rdx
+
 
 itoa:
     cmp rax, 0
@@ -63,6 +81,7 @@ itoa:
     pop rax
     inc r11
     jmp itoa
+
    
 reverse_init:
     mov r14, 0
@@ -82,20 +101,39 @@ reverse:
     dec r11
     cmp r11, -1
     jg reverse
-    jmp print_buffer
+    call print_buffer
+    pop rdx
+    pop rdi
+    cmp rdx, r15
+    push rdi
+    push rdx
+    jge loader
 
+loader:
+    call load_comma
+    pop rdx
+    pop rdi
+    mov rax, [rdi + 8 * rdx]
+    ret
+    jmp loop_array
 
 load_comma:
     mov rdi, rev_buf
     mov dword [rdi], ','
     inc rdi
     mov dword [rdi], ' '
-    jmp print_buffer
+    call print_buffer
+    ret
+
 
 load_eof:
+    mov rax, buf
+    ret
     mov rdi, rev_buf
     mov dword [rdi], 10
-    jmp print_buffer
+    call print_buffer
+    jmp exit
+
 
 print_buffer:
     mov     rdi, rev_buf        ; string1 to destination index
@@ -117,6 +155,7 @@ print_buffer:
     ; exit 
     xor     rdi,rdi             ; zero rdi (rdi hold return value)
     mov     rax, 60           ; set syscall number to 60 (0x3c hex)
+    ret
 
 exit:
     syscall
