@@ -1,14 +1,7 @@
-
-%define PROT_NONE   0x00
-%define PROT_READ   0x01
-%define PROT_WRITE  0x02
-%define PROT_EXEC   0x04
-
-%define MAP_SHARED  0x01
-%define MAP_PRIVATE 0x02
-%define MAP_TYPE    0x0F
-%define MAP_FIXED   0x10
-%define MAP_ANON    0x20
+section .bss
+    buffer resb 64
+    digitSpace resb 100
+    digitSpacePos resb 8
 
 section .text
     global orderlist
@@ -22,6 +15,16 @@ swap:
     inc rdx
     jmp loop_2
 
+swap_2:
+    mov rdi, buffer
+    mov r8, [rdi + r14]
+    mov r9, [rdi + r11]
+    mov [rdi + r14], r9
+    mov [rdi + r11], r8
+    inc r14
+    dec r11
+    jmp print_buffer
+
 orderlist:
     xor rax, rax
     mov rcx, 0
@@ -29,7 +32,7 @@ orderlist:
 
 orderlist_loop:
     cmp rcx, rsi
-    jg exit
+    jg write_list
     inc rcx
     mov rdx, 0
     jmp loop_2
@@ -48,53 +51,63 @@ loop_2:
     inc rdx
     jmp loop_2
 
+
+write_list:
+    mov rax, 45
+    mov r11, 0
+    mov rdi, buffer
+
+itoa:
+    cmp rax, 0
+    je reverse_init
+    mov rdx, 0
+    mov rcx, 10
+    div rcx
+    
+    push rax
+    mov rax, rdx
+    add rax, '0'
+    mov [rdi], rax
+    inc rdi
+    pop rax
+    inc r11
+    jmp itoa
+   
+reverse_init:
+    mov r14, 0
+    sub r11, 1
+ 
+
+reverse:
+    cmp r14, r11
+    jmp swap_2
+    ; jmp print_buffer
+
+; format_buffer:
+
+
+print_buffer:
+    mov     rdi, buffer        ; string1 to destination index
+    xor     rcx, rcx            ; zero rcx
+    not     rcx                 ; set rcx = -1
+    xor     al,al               ; zero the al register (initialize to NUL)
+    cld                         ; clear the direction flag
+    repnz   scasb               ; get the string length (dec rcx through NUL)
+    not     rcx                 ; rev all bits of negative results in absolute value
+    dec     rcx                 ; -1 to skip the null-terminator, rcx contains length
+    mov     rdx, rcx            ; put length in rdx
+
+    ; write string to stdout
+    mov     rsi, buffer        ; string1 to source index
+    mov     rax, 1              ; set write to command
+    mov     rdi,rax             ; set destination index to rax (stdout)
+    syscall                     ; call kernel
+
+    ; exit 
+    xor     rdi,rdi             ; zero rdi (rdi hold return value)
+    mov     rax, 60           ; set syscall number to 60 (0x3c hex)
+
 exit:
+    syscall
     ret
     
-
-
-; write_list:
-;     jmp mmap
-;         ; mov r8, [rdi]
-;     ; mov [r9], r8
-
-;     ; mov	rdi,1			; fd
-;     ; mov rsi, r9
-; 	; mov	rdx, 2 	; count
-; 	; mov	rax,1	 		; write(2)
-; 	; syscall
-
-; 	; exit(result)
-; 	mov	rdi,0			; result
-; 	mov	rax,60			; exit(2)
-; 	syscall
-;     ret
-
-; mmap:
-;     mov r9,   0                      ; and there's no file offset in either case.
-;     mov rax, 9          ; set up mmap()
-;     mov rdx, PROT_READ|PROT_WRITE    ; We'd like a read/write mapping
-;     mov rdi,  0                      ; at no pre-specified memory location.
-;     mov rsi, r14                     ; Length of the mapping in bytes.
-;     syscall                        ; do mmap() system call.
-;     test rax, rax                  ; Return value will be in rax.
-;     js error                   ; If it's negative, that's trouble.
-
-;     mov rbp, rax
-;     mov	rdi,0			; result
-; 	mov	rax,60			; exit(2)
-; 	syscall
-;     ret
-
-; error:
-;  mov rbp, rax
-;     mov	rdi,0			; result
-;     mov	rax,60			; exit(2)
-;     syscall
-;   mov rdi, rax                   ; In case of error, return code is -errno...
-;   mov rax, -1
-;   neg rdi                        ; ...so negate to get actual errno
-;   syscall
-
- 
-;     ret
