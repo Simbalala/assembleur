@@ -1,5 +1,6 @@
 section .bss
-    buffer resb 64
+    buf resb 64
+    rev_buf resb 64
     digitSpace resb 100
     digitSpacePos resb 8
 
@@ -14,16 +15,6 @@ swap:
     mov [rdi + 8 * (rdx + 1)], r8
     inc rdx
     jmp loop_2
-
-swap_2:
-    mov rdi, buffer
-    mov r8, [rdi + r14]
-    mov r9, [rdi + r11]
-    mov [rdi + r14], r9
-    mov [rdi + r11], r8
-    inc r14
-    dec r11
-    jmp print_buffer
 
 orderlist:
     xor rax, rax
@@ -53,9 +44,9 @@ loop_2:
 
 
 write_list:
-    mov rax, 45
+    mov rax, [rdi + 8 * rdx]
     mov r11, 0
-    mov rdi, buffer
+    mov rdi, buf
 
 itoa:
     cmp rax, 0
@@ -75,22 +66,42 @@ itoa:
    
 reverse_init:
     mov r14, 0
-    sub r11, 1
- 
+    dec r11
+    mov rdi, buf
+    mov rsi, rev_buf
+
+    mov rax, rdi            ; move end of buf for reverse 
+    add rax, r11
+    mov rdi, rax
 
 reverse:
-    cmp r14, r11
-    jmp swap_2
-    ; jmp print_buffer
+    movzx r8, byte [rdi]           ; swap value to reverse_buf
+    mov [rsi], r8
+    dec rdi
+    inc rsi
+    dec r11
+    cmp r11, -1
+    jg reverse
+    jmp print_buffer
 
-; format_buffer:
 
+load_comma:
+    mov rdi, rev_buf
+    mov dword [rdi], ','
+    inc rdi
+    mov dword [rdi], ' '
+    jmp print_buffer
+
+load_eof:
+    mov rdi, rev_buf
+    mov dword [rdi], 10
+    jmp print_buffer
 
 print_buffer:
-    mov     rdi, buffer        ; string1 to destination index
+    mov     rdi, rev_buf        ; string1 to destination index
     xor     rcx, rcx            ; zero rcx
     not     rcx                 ; set rcx = -1
-    xor     al,al               ; zero the al register (initialize to NUL)
+    xor     al, al              ; zero the al register (initialize to NUL)
     cld                         ; clear the direction flag
     repnz   scasb               ; get the string length (dec rcx through NUL)
     not     rcx                 ; rev all bits of negative results in absolute value
@@ -98,9 +109,9 @@ print_buffer:
     mov     rdx, rcx            ; put length in rdx
 
     ; write string to stdout
-    mov     rsi, buffer        ; string1 to source index
+    mov     rsi, rev_buf        ; string1 to source index
     mov     rax, 1              ; set write to command
-    mov     rdi,rax             ; set destination index to rax (stdout)
+    mov     rdi, rax            ; set destination index to rax (stdout)
     syscall                     ; call kernel
 
     ; exit 
