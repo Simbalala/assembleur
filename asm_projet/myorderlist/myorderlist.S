@@ -47,8 +47,9 @@ loop_2:
 ; write list
 
 write_list:
+    mov r9, rdi
     mov r15, rsi
-    dec r15
+    ; dec r15
     push rdi
     push rdx
     
@@ -58,7 +59,7 @@ loop_array:
     pop rdi
     cmp rdx, r15
     jge load_eof
-    mov rax, [rdi + 8 * rdx]
+    mov rax, [r9 + 8 * rdx]
     mov r11, 0
     mov rdi, buf
     inc rdx
@@ -107,14 +108,10 @@ reverse:
     cmp rdx, r15
     push rdi
     push rdx
-    jge loader
+    jge load_eof
 
 loader:
     call load_comma
-    pop rdx
-    pop rdi
-    mov rax, [rdi + 8 * rdx]
-    ret
     jmp loop_array
 
 load_comma:
@@ -128,7 +125,6 @@ load_comma:
 
 load_eof:
     mov rax, buf
-    ret
     mov rdi, rev_buf
     mov dword [rdi], 10
     call print_buffer
@@ -136,25 +132,25 @@ load_eof:
 
 
 print_buffer:
-    mov     rdi, rev_buf        ; string1 to destination index
-    xor     rcx, rcx            ; zero rcx
-    not     rcx                 ; set rcx = -1
-    xor     al, al              ; zero the al register (initialize to NUL)
-    cld                         ; clear the direction flag
-    repnz   scasb               ; get the string length (dec rcx through NUL)
-    not     rcx                 ; rev all bits of negative results in absolute value
-    dec     rcx                 ; -1 to skip the null-terminator, rcx contains length
-    mov     rdx, rcx            ; put length in rdx
+    mov     rdi, rev_buf        
+    xor     rcx, rcx            
+    not     rcx                 
+    xor     al, al              
+    cld                         
+    repnz   scasb               
+    not     rcx                 
+    dec     rcx                 
+    mov     rdx, rcx        
 
     ; write string to stdout
-    mov     rsi, rev_buf        ; string1 to source index
-    mov     rax, 1              ; set write to command
-    mov     rdi, rax            ; set destination index to rax (stdout)
-    syscall                     ; call kernel
+    mov     rsi, rev_buf        
+    mov     rax, 1              
+    mov     rdi, rax           
+    syscall                     
 
     ; exit 
-    xor     rdi,rdi             ; zero rdi (rdi hold return value)
-    mov     rax, 60           ; set syscall number to 60 (0x3c hex)
+    xor     rdi,rdi             
+    mov     rax, 60
     ret
 
 exit:
