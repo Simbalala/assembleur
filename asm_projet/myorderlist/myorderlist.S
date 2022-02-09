@@ -1,12 +1,9 @@
 section .bss
     buf resb 64
     rev_buf resb 64
-    digitSpace resb 100
-    digitSpacePos resb 8
 
 section .text
     global orderlist
-
 
 swap:
     mov r8, [rdi + 8 * rdx]
@@ -49,7 +46,6 @@ loop_2:
 write_list:
     mov r9, rdi
     mov r15, rsi
-    ; dec r15
     push rdi
     push rdx
     
